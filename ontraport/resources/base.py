@@ -32,7 +32,7 @@ class Resource(object):
         }
 
     def get_request_params(self, req_type, **params):
-        params.update(self.get_common_params())
+        params |= self.get_common_params()
         params['reqType'] = req_type
         if 'return_id' not in params:
             # return_id:
@@ -60,9 +60,8 @@ class Resource(object):
         error_tag = result_tag.find("error")
         if error_tag is None:
             return True
-        else:
-            logger.debug("response xml: %s", xml)
-            raise APIFailureError(error_tag.text.strip())
+        logger.debug("response xml: %s", xml)
+        raise APIFailureError(error_tag.text.strip())
 
     def log_request_params(self, params):
         _params = params.copy()
@@ -83,8 +82,8 @@ class Resource(object):
         response = requests.post(self.get_api_url(), params)
         if response.status_code != 200:
             raise APINonOKResponseError(
-                "API responded with status_code: %s" % response.status_code
-                )
+                f"API responded with status_code: {response.status_code}"
+            )
         self.check_response(response)
         return response
 
@@ -105,9 +104,7 @@ class XMLResourceMixin(object):
 
     @staticmethod
     def convert_to_timestamp(date):
-        if isinstance(date, datetime.date):
-            return date.strftime("%s")
-        return date
+        return date.strftime("%s") if isinstance(date, datetime.date) else date
 
     def get_xml(self):
         root = etree.Element(self.outer_tag)
@@ -137,9 +134,7 @@ class XMLResourceMixin(object):
             return None
 
         field_mapping = cls.xml_field_mapping
-        params = {}
-        params['id'] = obj_root.attrib.get("id")
-
+        params = {'id': obj_root.attrib.get("id")}
         for group_tag in obj_root.findall("Group_Tag"):
             field_data = field_mapping.get(group_tag.attrib.get("name"))
             if not field_data:
@@ -158,10 +153,8 @@ class XMLResourceMixin(object):
                         value = dateutil.parser.parse(value)
                     except (TypeError, ValueError):
                         pass
-                else:
-                    # try to parse sequence
-                    if cls.list_item_separator in value:
-                        value = [v.strip() for v in value.split(cls.list_item_separator) if v.strip()]
+                elif cls.list_item_separator in value:
+                    value = [v.strip() for v in value.split(cls.list_item_separator) if v.strip()]
                 params[key] = value
         obj = cls(**params)
         obj._xml_response = xml
@@ -169,8 +162,7 @@ class XMLResourceMixin(object):
 
     def serialize(self):
         el = self.get_xml()
-        s = etree.tostring(el)
-        return s
+        return etree.tostring(el)
 
 
 class ListMixin(object):
@@ -251,6 +243,4 @@ class DeleteMixin(object):
         xml = resp.content
         root = etree.fromstring(xml)
         # XXX if the contact does not exist it still return Success
-        if root.text == "Success":
-            return True
-        return False
+        return root.text == "Success"
