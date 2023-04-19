@@ -120,12 +120,10 @@ class Contact(
                 req_type=req_type,
                 )
         result = obj.response_result_tag
-        ret = []
-        for seq_el in result.findall("sequence"):
-            id = seq_el.attrib['id']
-            name = seq_el.text
-            ret.append((id, name))
-        return ret
+        return [
+            (seq_el.attrib['id'], seq_el.text)
+            for seq_el in result.findall("sequence")
+        ]
 
     def _update_sequences(self, action, sequences):
         """
@@ -192,12 +190,7 @@ class Contact(
                 req_type=req_type,
                 )
         result = obj.response_result_tag
-        ret = []
-        for tag_el in result.findall("tag"):
-            id = tag_el.attrib['id']
-            name = tag_el.text
-            ret.append((id, name))
-        return ret
+        return [(tag_el.attrib['id'], tag_el.text) for tag_el in result.findall("tag")]
 
     @classmethod
     def fetch_tags(cls):
@@ -213,12 +206,7 @@ class Contact(
                 )
         result = obj.response_result_tag
         raw_tags = result.find("tags").text
-        tags = [
-            tag for tag in
-            raw_tags.split(cls.list_item_separator)
-            if tag
-            ]
-        return tags
+        return [tag for tag in raw_tags.split(cls.list_item_separator) if tag]
 
     def _update_tags(self, req_type, tags):
         if isinstance(tags, basestring):
